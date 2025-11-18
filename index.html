@@ -786,12 +786,18 @@
         const activeObjects = canvas.getActiveObjects();
         if (activeObjects && activeObjects.length > 0) {
           activeObjects.forEach((obj) => {
-            if ("stroke" in obj) obj.set("stroke", color);
-            else if ("fill" in obj) obj.set("fill", color);
+            if ("stroke" in obj) {
+              obj.set("stroke", color);
+              // ⭐ 关键：同步更新“原始颜色”，这样取消选中时就不会还原成旧的黑色
+              obj._origStrokeColor = color;
+            } else if ("fill" in obj) {
+              obj.set("fill", color);
+            }
           });
           canvas.requestRenderAll();
         }
       });
+
 
       // 阴影颜色
       shadowColorInput.addEventListener("change", applyBrushOptions);
