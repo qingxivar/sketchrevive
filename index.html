@@ -499,6 +499,10 @@
             <span>🧹</span>
             <span>Clear Canvas</span>
           </button>
+          <button id="left-upload-image" class="secondary">
+            <span>📂</span>
+            <span>Upload Image</span>
+          </button>
         </div>
 
         <div class="canvas-wrapper">
@@ -630,7 +634,12 @@
         </div>
       </div>
     </main>
-    
+    <input
+      type="file"
+      id="left-upload-input"
+      accept="image/*"
+      style="display: none;"
+    />
 
   </div>
 
@@ -851,6 +860,67 @@
 
     window.addEventListener("DOMContentLoaded", function () {
       const leftCanvas = initBoard("left", "left-canvas");
+      window.addEventListener("DOMContentLoaded", function () {
+      const leftCanvas = initBoard("left", "left-canvas");
+      const rightCanvas = initBoard("right", "right-canvas");
+    
+      // ✅ 新增：左侧上传按钮 & 隐藏文件输入
+      const leftUploadBtn = document.getElementById("left-upload-image");
+      const leftUploadInput = document.getElementById("left-upload-input");
+      // 点击按钮时，打开文件选择框
+      if (leftUploadBtn && leftUploadInput) {
+        leftUploadBtn.addEventListener("click", function () {
+          leftUploadInput.click();
+        });
+    
+        // 选择文件后，把图片加载到左画布
+        leftUploadInput.addEventListener("change", function (e) {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+    
+          const reader = new FileReader();
+    
+          reader.onload = function (event) {
+            const dataUrl = event.target.result;
+    
+            fabric.Image.fromURL(dataUrl, function (img) {
+              const canvas = leftCanvas;
+    
+              // 让图片按比例缩放到画布大小以内
+              const maxWidth = canvas.width;
+              const maxHeight = canvas.height;
+    
+              const scale = Math.min(
+                maxWidth / img.width,
+                maxHeight / img.height,
+                1 // 不要放大超过原始尺寸
+              );
+    
+              img.scale(scale);
+    
+              // 居中摆放
+              img.set({
+                left: (maxWidth - img.getScaledWidth()) / 2,
+                top: (maxHeight - img.getScaledHeight()) / 2,
+                selectable: true,
+              });
+    
+              // 你可以选择是否清空画布再添加图片：
+              // canvas.clear();
+              // canvas.backgroundColor = "#ffffff";
+    
+              canvas.add(img);
+              canvas.requestRenderAll();
+            });
+          };
+    
+          reader.readAsDataURL(file);
+    
+          // 允许再次选择同一个文件
+          e.target.value = "";
+        });
+      }
+
       const rightCanvas = initBoard("right", "right-canvas");
   // ========= 新增：右侧画板选中高亮（选中变红，取消恢复原色） =========
       function enableSelectionHighlight(canvas) {
