@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>双画板绘图工具</title>
+  <!-- Fabric.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at top left, #3b82f6 0, #020617 50%, #020617 100%);
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1360px;
+      margin: 24px;
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(148, 163, 184, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.4);
+      padding-bottom: 10px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    header h1 span.icon {
+      display: inline-flex;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #f97316, #e11d48);
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(37, 99, 235, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #bfdbfe;
+    }
+
+    .boards {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .boards {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .board {
+      border-radius: 20px;
+      background: radial-gradient(circle at top, rgba(30, 64, 175, 0.3), rgba(15, 23, 42, 0.96));
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .board-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .board-title {
+      font-size: 15px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .board-title.dot {
+      position: relative;
+      padding-left: 14px;
+    }
+
+    .board-title.dot::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);
+    }
+
+    .board-subtitle {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .toolbar-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .toolbar-group label {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+
+    .toolbar select,
+    .toolbar input[type="color"],
+    .toolbar input[type="range"],
+    .toolbar button {
+      font-size: 11px;
+    }
+
+    .toolbar select {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      padding: 4px 24px 4px 8px;
+      appearance: none;
+      position: relative;
+    }
+
+    .toolbar input[type="color"] {
+      width: 32px;
+      height: 20px;
+      padding: 0;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: transparent;
+    }
+
+    .toolbar input[type="range"] {
+      width: 90px;
+      accent-color: #60a5fa;
+    }
+
+    .toolbar button {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      background: linear-gradient(90deg, #2563eb, #4f46e5);
+      color: #e5e7eb;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+      white-space: nowrap;
+    }
+
+    .toolbar button.secondary {
+      background: rgba(30, 64, 175, 0.5);
+    }
+
+    .toolbar button.danger {
+      background: linear-gradient(90deg, #f97316, #e11d48);
+    }
+
+    .toolbar button:hover {
+      transform: translateY(-0.5px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.9);
+    }
+
+    .toolbar button span {
+      font-size: 13px;
+    }
+
+    .canvas-wrapper {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at top, #0b1120, #020617);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.9);
+      position: relative;
+    }
+
+    .canvas-wrapper canvas {
+      display: block;
+      background: transparent;
+    }
+
+    .canvas-footer {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .vector-panel {
+      margin-top: 6px;
+      padding: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at top, rgba(30, 64, 175, 0.4), rgba(15, 23, 42, 0.96));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .vector-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+
+    .vector-panel-header span.tip {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .vector-panel textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border-radius: 12px;
+      padding: 8px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+    }
+
+    .vector-panel textarea:focus {
+      outline: none;
+      border-color: rgba(96, 165, 250, 0.9);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+    }
+
+    .vector-panel-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    small.mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>
+          <span class="icon">✏️</span>
+          双画板绘图 &amp; 矢量笔画面板
+        </h1>
+        <p>左侧自由绘制，右侧可载入 / 预览矢量化笔画（Fabric.js JSON）。</p>
+      </div>
+      <div class="badge">Fabric.js · 双画布 · 矢量笔画</div>
+    </header>
+
+    <main class="boards">
+      <!-- 左侧画板 -->
+      <section class="board">
+        <div class="board-header">
+          <div>
+            <div class="board-title dot">左侧画板 · 手绘区</div>
+            <div class="board-subtitle">适合自由草图、涂鸦、试笔刷等操作</div>
+          </div>
+        </div>
+
+        <div class="toolbar" id="left-toolbar">
+          <div class="toolbar-group">
+            <label for="left-drawing-mode-selector">画笔</label>
+            <select id="left-drawing-mode-selector">
+              <option value="Pencil">铅笔</option>
+              <option value="Circle">圆刷</option>
+              <option value="Spray">喷枪</option>
+              <option value="hline">横线纹理</option>
+              <option value="vline">竖线纹理</option>
+              <option value="square">方块纹理</option>
+              <option value="diamond">菱形纹理</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label>颜色</label>
+            <input type="color" id="left-drawing-color" value="#f97316" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>阴影色</label>
+            <input type="color" id="left-drawing-shadow-color" value="#000000" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>线宽 <span id="left-line-width-label">10</span></label>
+            <input
+              type="range"
+              id="left-drawing-line-width"
+              min="1"
+              max="60"
+              value="10"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>阴影模糊 <span id="left-shadow-width-label">0</span></label>
+            <input
+              type="range"
+              id="left-drawing-shadow-width"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>阴影偏移 <span id="left-shadow-offset-label">0</span></label>
+            <input
+              type="range"
+              id="left-drawing-shadow-offset"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <button id="left-drawing-mode">
+            <span>🎨</span>
+            <span>退出绘制模式</span>
+          </button>
+
+          <button id="left-clear-canvas" class="danger">
+            <span>🧹</span>
+            <span>清空画布</span>
+          </button>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="left-canvas" width="600" height="360"></canvas>
+        </div>
+        <div class="canvas-footer">
+          <span>提示：左上角按钮可切换不同画笔 / 纹理。</span>
+        </div>
+      </section>
+
+      <!-- 右侧画板 -->
+      <section class="board">
+        <div class="board-header">
+          <div>
+            <div class="board-title dot">右侧画板 · 矢量笔画区</div>
+            <div class="board-subtitle">
+              支持与左侧同样的绘制功能，并且可以载入 / 导出矢量化笔画 JSON。
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar" id="right-toolbar">
+          <div class="toolbar-group">
+            <label for="right-drawing-mode-selector">画笔</label>
+            <select id="right-drawing-mode-selector">
+              <option value="Pencil">铅笔</option>
+              <option value="Circle">圆刷</option>
+              <option value="Spray">喷枪</option>
+              <option value="hline">横线纹理</option>
+              <option value="vline">竖线纹理</option>
+              <option value="square">方块纹理</option>
+              <option value="diamond">菱形纹理</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label>颜色</label>
+            <input type="color" id="right-drawing-color" value="#22c55e" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>阴影色</label>
+            <input type="color" id="right-drawing-shadow-color" value="#000000" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>线宽 <span id="right-line-width-label">10</span></label>
+            <input
+              type="range"
+              id="right-drawing-line-width"
+              min="1"
+              max="60"
+              value="10"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>阴影模糊 <span id="right-shadow-width-label">0</span></label>
+            <input
+              type="range"
+              id="right-drawing-shadow-width"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>阴影偏移 <span id="right-shadow-offset-label">0</span></label>
+            <input
+              type="range"
+              id="right-drawing-shadow-offset"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <button id="right-drawing-mode">
+            <span>🎨</span>
+            <span>退出绘制模式</span>
+          </button>
+
+          <button id="right-clear-canvas" class="danger">
+            <span>🧹</span>
+            <span>清空画布</span>
+          </button>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="right-canvas" width="600" height="360"></canvas>
+        </div>
+        <div class="canvas-footer">
+          <span>提示：下方可以载入 / 导出 Fabric JSON 矢量数据。</span>
+        </div>
+
+        <!-- 矢量笔画加载面板（只在右侧） -->
+        <div class="vector-panel">
+          <div class="vector-panel-header">
+            <div>
+              矢量化笔画 JSON
+              <span class="tip">（兼容 <span class="mono">canvas.loadFromJSON / toJSON()</span>）</span>
+            </div>
+          </div>
+
+          <textarea
+            id="right-vector-input"
+            placeholder='在此粘贴 Fabric.js 的 JSON 数据，然后点击“载入到画板”。&#10;也可以在画板上绘制后点击“导出当前画板为 JSON”。'
+          ></textarea>
+
+          <div class="vector-panel-actions">
+            <button id="right-export-json" class="secondary">
+              <span>⬇️</span>
+              <span>导出当前画板为 JSON</span>
+            </button>
+            <button id="right-load-vector">
+              <span>⬆️</span>
+              <span>载入到画板</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // 通用初始化函数：给一个画板（左 or 右）挂载完整的绘制功能
+    function initDrawingBoard(prefix, canvasId) {
+      const $ = (id) => document.getElementById(prefix + "-" + id);
+
+      const canvas = new fabric.Canvas(canvasId, {
+        isDrawingMode: true,
+      });
+
+      fabric.Object.prototype.transparentCorners = false;
+
+      const drawingModeEl = $("drawing-mode");
+      const drawingModeOptionsEl = null; // 预留：如需 options 容器可扩展
+      const drawingColorEl = $("drawing-color");
+      const drawingShadowColorEl = $("drawing-shadow-color");
+      const drawingLineWidthEl = $("drawing-line-width");
+      const drawingShadowWidthEl = $("drawing-shadow-width");
+      const drawingShadowOffsetEl = $("drawing-shadow-offset");
+      const clearEl = $("clear-canvas");
+
+      const lineWidthLabel = $("line-width-label");
+      const shadowWidthLabel = $("shadow-width-label");
+      const shadowOffsetLabel = $("shadow-offset-label");
+      const modeSelectorEl = $("drawing-mode-selector");
+
+      // 初始按钮文字
+      drawingModeEl.textContent = "退出绘制模式";
+      canvas.isDrawingMode = true;
+
+      clearEl.onclick = function () {
+        canvas.clear();
+      };
+
+      drawingModeEl.onclick = function () {
+        canvas.isDrawingMode = !canvas.isDrawingMode;
+        if (canvas.isDrawingMode) {
+          drawingModeEl.textContent = "退出绘制模式";
+        } else {
+          drawingModeEl.textContent = "进入绘制模式";
+        }
+      };
+
+      // PatternBrush 相关
+      let vLinePatternBrush,
+        hLinePatternBrush,
+        squarePatternBrush,
+        diamondPatternBrush;
+
+      if (fabric.PatternBrush) {
+        vLinePatternBrush = new fabric.PatternBrush(canvas);
+        vLinePatternBrush.getPatternSrc = function () {
+          const patternCanvas = fabric.document.createElement("canvas");
+          patternCanvas.width = patternCanvas.height = 10;
+          const ctx = patternCanvas.getContext("2d");
+
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(0, 5);
+          ctx.lineTo(10, 5);
+          ctx.closePath();
+          ctx.stroke();
+
+          return patternCanvas;
+        };
+
+        hLinePatternBrush = new fabric.PatternBrush(canvas);
+        hLinePatternBrush.getPatternSrc = function () {
+          const patternCanvas = fabric.document.createElement("canvas");
+          patternCanvas.width = patternCanvas.height = 10;
+          const ctx = patternCanvas.getContext("2d");
+
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(5, 0);
+          ctx.lineTo(5, 10);
+          ctx.closePath();
+          ctx.stroke();
+
+          return patternCanvas;
+        };
+
+        squarePatternBrush = new fabric.PatternBrush(canvas);
+        squarePatternBrush.getPatternSrc = function () {
+          const squareWidth = 10,
+            squareDistance = 2;
+
+          const patternCanvas = fabric.document.createElement("canvas");
+          patternCanvas.width = patternCanvas.height =
+            squareWidth + squareDistance;
+          const ctx = patternCanvas.getContext("2d");
+
+          ctx.fillStyle = this.color;
+          ctx.fillRect(0, 0, squareWidth, squareWidth);
+
+          return patternCanvas;
+        };
+
+        diamondPatternBrush = new fabric.PatternBrush(canvas);
+        diamondPatternBrush.getPatternSrc = function () {
+          const squareWidth = 10,
+            squareDistance = 5;
+          const patternCanvas = fabric.document.createElement("canvas");
+          const rect = new fabric.Rect({
+            width: squareWidth,
+            height: squareWidth,
+            angle: 45,
+            fill: this.color,
+          });
+
+          const canvasWidth = rect.getBoundingRect().width;
+
+          patternCanvas.width = patternCanvas.height =
+            canvasWidth + squareDistance;
+          rect.set({ left: canvasWidth / 2, top: canvasWidth / 2 });
+
+          const ctx = patternCanvas.getContext("2d");
+          rect.render(ctx);
+
+          return patternCanvas;
+        };
+      }
+
+      // 切换画笔类型
+      modeSelectorEl.onchange = function () {
+        const value = this.value;
+
+        if (value === "hline") {
+          canvas.freeDrawingBrush = hLinePatternBrush;
+        } else if (value === "vline") {
+          canvas.freeDrawingBrush = vLinePatternBrush;
+        } else if (value === "square") {
+          canvas.freeDrawingBrush = squarePatternBrush;
+        } else if (value === "diamond") {
+          canvas.freeDrawingBrush = diamondPatternBrush;
+        } else {
+          // 对应 fabric.PencilBrush / fabric.CircleBrush / fabric.SprayBrush
+          const brushClass = fabric[value + "Brush"];
+          if (brushClass) {
+            canvas.freeDrawingBrush = new brushClass(canvas);
+          } else {
+            // fallback
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+          }
+        }
+
+        if (canvas.freeDrawingBrush) {
+          const brush = canvas.freeDrawingBrush;
+          brush.color = drawingColorEl.value;
+
+          if (brush.getPatternSrc) {
+            brush.source = brush.getPatternSrc.call(brush);
+          }
+
+          brush.width = parseInt(drawingLineWidthEl.value, 10) || 1;
+          brush.shadow = new fabric.Shadow({
+            blur: parseInt(drawingShadowWidthEl.value, 10) || 0,
+            offsetX: parseInt(drawingShadowOffsetEl.value, 10) || 0,
+            offsetY: parseInt(drawingShadowOffsetEl.value, 10) || 0,
+            affectStroke: true,
+            color: drawingShadowColorEl.value,
+          });
+        }
+      };
+
+      // 初始化一次画笔
+      modeSelectorEl.dispatchEvent(new Event("change"));
+
+      // 颜色变化
+      drawingColorEl.onchange = function () {
+        const brush = canvas.freeDrawingBrush;
+        if (!brush) return;
+        brush.color = this.value;
+        if (brush.getPatternSrc) {
+          brush.source = brush.getPatternSrc.call(brush);
+        }
+      };
+
+      // 阴影颜色变化
+      drawingShadowColorEl.onchange = function () {
+        const brush = canvas.freeDrawingBrush;
+        if (!brush || !brush.shadow) return;
+        brush.shadow.color = this.value;
+      };
+
+      // 线宽变化
+      drawingLineWidthEl.onchange = function () {
+        const brush = canvas.freeDrawingBrush;
+        const v = parseInt(this.value, 10) || 1;
+        if (brush) brush.width = v;
+        if (lineWidthLabel) lineWidthLabel.textContent = v;
+      };
+
+      // 阴影模糊变化
+      drawingShadowWidthEl.onchange = function () {
+        const brush = canvas.freeDrawingBrush;
+        const v = parseInt(this.value, 10) || 0;
+        if (brush && brush.shadow) brush.shadow.blur = v;
+        if (shadowWidthLabel) shadowWidthLabel.textContent = v;
+      };
+
+      // 阴影偏移变化（同时作用 X / Y）
+      drawingShadowOffsetEl.onchange = function () {
+        const brush = canvas.freeDrawingBrush;
+        const v = parseInt(this.value, 10) || 0;
+        if (brush && brush.shadow) {
+          brush.shadow.offsetX = v;
+          brush.shadow.offsetY = v;
+        }
+        if (shadowOffsetLabel) shadowOffsetLabel.textContent = v;
+      };
+
+      return canvas;
+    }
+
+    // 等页面加载完后初始化两个画板
+    window.addEventListener("DOMContentLoaded", function () {
+      const leftCanvas = initDrawingBoard("left", "left-canvas");
+      const rightCanvas = initDrawingBoard("right", "right-canvas");
+
+      // ===== 右侧画板：矢量化笔画（JSON）载入 / 导出 =====
+      const vectorInput = document.getElementById("right-vector-input");
+      const loadBtn = document.getElementById("right-load-vector");
+      const exportBtn = document.getElementById("right-export-json");
+
+      loadBtn.addEventListener("click", function () {
+        if (!vectorInput.value.trim()) {
+          alert("请先在文本框中粘贴 JSON 数据。");
+          return;
+        }
+        try {
+          const json = JSON.parse(vectorInput.value);
+          rightCanvas.loadFromJSON(json, function () {
+            rightCanvas.renderAll();
+          });
+        } catch (e) {
+          console.error(e);
+          alert("JSON 解析失败，请确认格式是否正确。");
+        }
+      });
+
+      exportBtn.addEventListener("click", function () {
+        const json = rightCanvas.toJSON();
+        vectorInput.value = JSON.stringify(json, null, 2);
+      });
+    });
+  </script>
+</body>
+</html>
+<!-- 改几个地方，重新给我代码，1.全部使用英文 2，画板默认画板是白色，绘制stroke默认颜色是黑色 3.选中线条以后可以对线条修改颜色 4，添加删除线条的功能 5，右侧不需要矢量化笔画 JSON这一部分，只需要加上一个按钮是Completion ，这个按钮样式好看点，6.顶部标题为SketchRevive 而不是双画板绘图 & 矢量笔画面板，不需要副标题 7，左侧添加一个语音输入组件，可以开启关闭语音按钮，然后可以把输入的语音实时转化为文本显示出来 -->

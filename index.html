@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SketchRevive (Fixed)</title>
+  <script src="https://cdn.jsdelivr.net/npm/fabric@4.6.0/dist/fabric.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        "Noto Sans", sans-serif;
+      background: radial-gradient(circle at top left, #3b82f6 0, #020617 50%, #020617 100%);
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1360px;
+      margin: 24px;
+      padding: 24px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(148, 163, 184, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.4);
+      padding-bottom: 10px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+
+    header h1 span.icon {
+      display: inline-flex;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #f97316, #e11d48);
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(37, 99, 235, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #bfdbfe;
+      white-space: nowrap;
+    }
+
+    .boards {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .boards {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .board {
+      border-radius: 20px;
+      background: radial-gradient(circle at top, rgba(30, 64, 175, 0.3), rgba(15, 23, 42, 0.96));
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .board-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .board-title {
+      font-size: 15px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .board-title.dot {
+      position: relative;
+      padding-left: 14px;
+    }
+
+    .board-title.dot::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);
+    }
+
+    .board-subtitle {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .toolbar-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .toolbar-group label {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+
+    .toolbar select,
+    .toolbar input[type="color"],
+    .toolbar input[type="range"],
+    .toolbar button {
+      font-size: 11px;
+    }
+
+    .toolbar select {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      padding: 4px 24px 4px 8px;
+      appearance: none;
+    }
+
+    .toolbar input[type="color"] {
+      width: 32px;
+      height: 20px;
+      padding: 0;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: transparent;
+    }
+
+    .toolbar input[type="range"] {
+      width: 90px;
+      accent-color: #60a5fa;
+    }
+
+    .toolbar button {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      background: linear-gradient(90deg, #2563eb, #4f46e5);
+      color: #e5e7eb;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+      white-space: nowrap;
+    }
+
+    .toolbar button.secondary {
+      background: rgba(30, 64, 175, 0.5);
+    }
+
+    .toolbar button.danger {
+      background: linear-gradient(90deg, #f97316, #e11d48);
+    }
+
+    .toolbar button:hover {
+      transform: translateY(-0.5px);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.9);
+    }
+
+    .toolbar button span {
+      font-size: 13px;
+    }
+
+    .canvas-wrapper {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: #f3f4f6;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+      position: relative;
+    }
+
+    .canvas-wrapper canvas {
+      display: block;
+    }
+
+    .canvas-footer {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+
+    .voice-panel {
+      margin-top: 6px;
+      padding: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: radial-gradient(circle at top, rgba(30, 64, 175, 0.4), rgba(15, 23, 42, 0.96));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .voice-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+
+    .voice-status {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .voice-status.active {
+      color: #22c55e;
+    }
+
+    .voice-textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      border-radius: 12px;
+      padding: 8px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+    }
+
+    .voice-textarea:focus {
+      outline: none;
+      border-color: rgba(96, 165, 250, 0.9);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.5);
+    }
+
+    .voice-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .voice-hint {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .voice-button {
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: radial-gradient(circle at 0% 0%, #f97316, #e11d48);
+      color: #e5e7eb;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.85),
+        0 10px 24px rgba(248, 113, 113, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .voice-button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.35), transparent 55%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .voice-button-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .voice-button.listening {
+      background: radial-gradient(circle at 0% 0%, #ef4444, #b91c1c);
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.85),
+        0 12px 30px rgba(239, 68, 68, 0.7);
+    }
+
+    .completion-btn {
+      margin-top: 10px;
+      align-self: flex-end;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: radial-gradient(circle at 0% 0%, #22c55e, #16a34a);
+      color: #e5e7eb;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.85),
+        0 12px 30px rgba(22, 163, 74, 0.45);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .completion-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.3), transparent 55%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .completion-btn-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .completion-btn:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.85),
+        0 18px 40px rgba(22, 163, 74, 0.6);
+    }
+
+    .completion-btn:active {
+      transform: translateY(0);
+      box-shadow:
+        0 0 0 1px rgba(15, 23, 42, 0.85),
+        0 10px 24px rgba(22, 163, 74, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>
+        <span class="icon">✏️</span>
+        SketchRevive
+      </h1>
+      <div class="badge">Dual Canvas · Fabric.js</div>
+    </header>
+
+    <main class="boards">
+      <!-- LEFT BOARD -->
+      <section class="board">
+        <div class="board-header">
+          <div>
+            <div class="board-title dot">Left Board · Sketch</div>
+            <div class="board-subtitle">Freehand drawing, testing brushes and strokes.</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <label for="left-drawing-mode-selector">Brush</label>
+            <select id="left-drawing-mode-selector">
+              <option value="Pencil">Pencil</option>
+              <option value="Circle">Circle Brush</option>
+              <option value="Spray">Spray</option>
+              <option value="hline">Horizontal Pattern</option>
+              <option value="vline">Vertical Pattern</option>
+              <option value="square">Square Pattern</option>
+              <option value="diamond">Diamond Pattern</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label>Color</label>
+            <input type="color" id="left-drawing-color" value="#000000" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Shadow Color</label>
+            <input type="color" id="left-drawing-shadow-color" value="#000000" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Line Width <span id="left-line-width-label">10</span></label>
+            <input
+              type="range"
+              id="left-drawing-line-width"
+              min="1"
+              max="60"
+              value="10"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Shadow Blur <span id="left-shadow-width-label">0</span></label>
+            <input
+              type="range"
+              id="left-drawing-shadow-width"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Shadow Offset <span id="left-shadow-offset-label">0</span></label>
+            <input
+              type="range"
+              id="left-drawing-shadow-offset"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <button id="left-drawing-mode">
+            <span>🎨</span>
+            <span>Exit Drawing Mode</span>
+          </button>
+
+          <button id="left-delete-object" class="secondary">
+            <span>✂️</span>
+            <span>Delete Selected</span>
+          </button>
+
+          <button id="left-clear-canvas" class="danger">
+            <span>🧹</span>
+            <span>Clear Canvas</span>
+          </button>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="left-canvas" width="600" height="360"></canvas>
+        </div>
+        <div class="canvas-footer">
+          <span>Tip: select strokes and change color using the color picker.</span>
+        </div>
+      </section>
+
+      <!-- RIGHT BOARD -->
+      <section class="board">
+        <div class="board-header">
+          <div>
+            <div class="board-title dot">Right Board · Refine</div>
+            <div class="board-subtitle">
+              Same drawing tools, ideal for refined sketches and final touches.
+            </div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <label for="right-drawing-mode-selector">Brush</label>
+            <select id="right-drawing-mode-selector">
+              <option value="Pencil">Pencil</option>
+              <option value="Circle">Circle Brush</option>
+              <option value="Spray">Spray</option>
+              <option value="hline">Horizontal Pattern</option>
+              <option value="vline">Vertical Pattern</option>
+              <option value="square">Square Pattern</option>
+              <option value="diamond">Diamond Pattern</option>
+            </select>
+          </div>
+
+          <div class="toolbar-group">
+            <label>Color</label>
+            <input type="color" id="right-drawing-color" value="#000000" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Shadow Color</label>
+            <input type="color" id="right-drawing-shadow-color" value="#000000" />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Line Width <span id="right-line-width-label">10</span></label>
+            <input
+              type="range"
+              id="right-drawing-line-width"
+              min="1"
+              max="60"
+              value="10"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Shadow Blur <span id="right-shadow-width-label">0</span></label>
+            <input
+              type="range"
+              id="right-drawing-shadow-width"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <div class="toolbar-group">
+            <label>Shadow Offset <span id="right-shadow-offset-label">0</span></label>
+            <input
+              type="range"
+              id="right-drawing-shadow-offset"
+              min="0"
+              max="40"
+              value="0"
+            />
+          </div>
+
+          <button id="right-drawing-mode">
+            <span>🎨</span>
+            <span>Exit Drawing Mode</span>
+          </button>
+
+          <button id="right-delete-object" class="secondary">
+            <span>✂️</span>
+            <span>Delete Selected</span>
+          </button>
+
+          <button id="right-clear-canvas" class="danger">
+            <span>🧹</span>
+            <span>Clear Canvas</span>
+          </button>
+        </div>
+
+
+        <div class="canvas-wrapper">
+          <canvas id="right-canvas" width="600" height="360"></canvas>
+        </div>
+        <div class="canvas-footer">
+          <span>Tip: select strokes, then adjust color / shadow.</span>
+        </div>
+
+        <button id="right-completion-btn" class="completion-btn">
+          <span class="completion-btn-icon">✓</span>
+          <span>Completion</span>
+        </button>
+      </section>
+
+      <!-- Move the Voice Input Panel below the Right Board -->
+      <div class="voice-panel">
+        <div class="voice-header">
+          <span>Voice Input</span>
+          <span id="left-voice-status" class="voice-status">Idle</span>
+        </div>
+
+        <textarea
+          id="left-voice-text"
+          class="voice-textarea"
+          placeholder="Speech-to-text results will appear here..."
+        ></textarea>
+
+        <div class="voice-row">
+          <span class="voice-hint">
+            Click to start / stop speech recognition. (Requires SpeechRecognition support)
+          </span>
+          <button id="left-voice-btn" class="voice-button">
+            <span class="voice-button-icon">🎤</span>
+            <span>Start Voice</span>
+          </button>
+        </div>
+      </div>
+    </main>
+    
+
+  </div>
+
+  <script>
+    // 创建 PatternBrush 的帮助函数
+    function createPatternBrush(canvas, mode) {
+      const PatternBrush = fabric.PatternBrush;
+      if (!PatternBrush) return new fabric.PencilBrush(canvas);
+
+      const brush = new PatternBrush(canvas);
+
+      if (mode === "hline") {
+        brush.getPatternSrc = function () {
+          const patternCanvas = fabric.util.createCanvasElement();
+          patternCanvas.width = patternCanvas.height = 10;
+          const ctx = patternCanvas.getContext("2d");
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(0, 5);
+          ctx.lineTo(10, 5);
+          ctx.closePath();
+          ctx.stroke();
+          return patternCanvas;
+        };
+      } else if (mode === "vline") {
+        brush.getPatternSrc = function () {
+          const patternCanvas = fabric.util.createCanvasElement();
+          patternCanvas.width = patternCanvas.height = 10;
+          const ctx = patternCanvas.getContext("2d");
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(5, 0);
+          ctx.lineTo(5, 10);
+          ctx.closePath();
+          ctx.stroke();
+          return patternCanvas;
+        };
+      } else if (mode === "square") {
+        brush.getPatternSrc = function () {
+          const squareWidth = 10,
+            squareDistance = 2;
+          const patternCanvas = fabric.util.createCanvasElement();
+          patternCanvas.width = patternCanvas.height = squareWidth + squareDistance;
+          const ctx = patternCanvas.getContext("2d");
+          ctx.fillStyle = this.color;
+          ctx.fillRect(0, 0, squareWidth, squareWidth);
+          return patternCanvas;
+        };
+      } else if (mode === "diamond") {
+        brush.getPatternSrc = function () {
+          const squareWidth = 10,
+            squareDistance = 5;
+          const patternCanvas = fabric.util.createCanvasElement();
+          const rect = new fabric.Rect({
+            width: squareWidth,
+            height: squareWidth,
+            angle: 45,
+            fill: this.color,
+          });
+          const canvasWidth = rect.getBoundingRect().width;
+          patternCanvas.width = patternCanvas.height = canvasWidth + squareDistance;
+          rect.set({ left: canvasWidth / 2, top: canvasWidth / 2 });
+          const ctx = patternCanvas.getContext("2d");
+          rect.render(ctx);
+          return patternCanvas;
+        };
+      }
+
+      return brush;
+    }
+
+    // 初始化一个画板（逻辑尽量跟你测试通过的精简版一致）
+    function initBoard(prefix, canvasId) {
+      const canvas = new fabric.Canvas(canvasId);
+      canvas.isDrawingMode = true;
+      canvas.backgroundColor = "#ffffff";
+      canvas.renderAll();
+
+      const modeSelector = document.getElementById(prefix + "-drawing-mode-selector");
+      const colorInput = document.getElementById(prefix + "-drawing-color");
+      const shadowColorInput = document.getElementById(prefix + "-drawing-shadow-color");
+      const lineWidthInput = document.getElementById(prefix + "-drawing-line-width");
+      const shadowWidthInput = document.getElementById(prefix + "-drawing-shadow-width");
+      const shadowOffsetInput = document.getElementById(prefix + "-drawing-shadow-offset");
+      const clearBtn = document.getElementById(prefix + "-clear-canvas");
+      const delBtn = document.getElementById(prefix + "-delete-object");
+      const modeBtn = document.getElementById(prefix + "-drawing-mode");
+      const lineWidthLabel = document.getElementById(prefix + "-line-width-label");
+      const shadowWidthLabel = document.getElementById(prefix + "-shadow-width-label");
+      const shadowOffsetLabel = document.getElementById(prefix + "-shadow-offset-label");
+
+      const modeBtnTextSpan = modeBtn.querySelector("span:last-child");
+      modeBtnTextSpan.textContent = "Exit Drawing Mode";
+
+      function applyBrushOptions() {
+        const brush = canvas.freeDrawingBrush;
+        if (!brush) return;
+        brush.color = colorInput.value || "#000000";
+        brush.width = parseInt(lineWidthInput.value, 10) || 1;
+
+        const blur = parseInt(shadowWidthInput.value, 10) || 0;
+        const offset = parseInt(shadowOffsetInput.value, 10) || 0;
+
+        if (blur > 0 || offset !== 0) {
+          brush.shadow = new fabric.Shadow({
+            blur: blur,
+            offsetX: offset,
+            offsetY: offset,
+            color: shadowColorInput.value || "#000000",
+            affectStroke: true,
+          });
+        } else {
+          brush.shadow = null;
+        }
+      }
+
+      function setBrush(mode) {
+        if (mode === "hline" || mode === "vline" || mode === "square" || mode === "diamond") {
+          canvas.freeDrawingBrush = createPatternBrush(canvas, mode);
+        } else {
+          const brushClass = fabric[mode + "Brush"];
+          if (brushClass) {
+            canvas.freeDrawingBrush = new brushClass(canvas);
+          } else {
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+          }
+        }
+        applyBrushOptions();
+      }
+
+      // 初始 Brush
+      setBrush(modeSelector.value);
+
+      // 切换绘图模式（开/关自由绘制）
+      modeBtn.addEventListener("click", () => {
+        canvas.isDrawingMode = !canvas.isDrawingMode;
+        modeBtnTextSpan.textContent = canvas.isDrawingMode
+          ? "Exit Drawing Mode"
+          : "Enter Drawing Mode";
+      });
+
+      // Brush 类型切换
+      modeSelector.addEventListener("change", () => {
+        setBrush(modeSelector.value);
+      });
+
+      // 颜色改变
+      colorInput.addEventListener("change", () => {
+        applyBrushOptions();
+        const color = colorInput.value || "#000000";
+        const activeObjects = canvas.getActiveObjects();
+        if (activeObjects && activeObjects.length > 0) {
+          activeObjects.forEach((obj) => {
+            if ("stroke" in obj) obj.set("stroke", color);
+            else if ("fill" in obj) obj.set("fill", color);
+          });
+          canvas.requestRenderAll();
+        }
+      });
+
+      // 阴影颜色
+      shadowColorInput.addEventListener("change", applyBrushOptions);
+
+      // 线宽
+      lineWidthInput.addEventListener("change", () => {
+        const v = parseInt(lineWidthInput.value, 10) || 1;
+        if (lineWidthLabel) lineWidthLabel.textContent = v;
+        applyBrushOptions();
+      });
+
+      // 阴影模糊
+      shadowWidthInput.addEventListener("change", () => {
+        const v = parseInt(shadowWidthInput.value, 10) || 0;
+        if (shadowWidthLabel) shadowWidthLabel.textContent = v;
+        applyBrushOptions();
+      });
+
+      // 阴影偏移
+      shadowOffsetInput.addEventListener("change", () => {
+        const v = parseInt(shadowOffsetInput.value, 10) || 0;
+        if (shadowOffsetLabel) shadowOffsetLabel.textContent = v;
+        applyBrushOptions();
+      });
+
+      // 清空画布（只在点击按钮时触发，不会在 mouseup 触发）
+      clearBtn.addEventListener("click", () => {
+        canvas.clear();
+        canvas.backgroundColor = "#ffffff";
+        canvas.renderAll();
+      });
+
+      // 删除选中对象
+      delBtn.addEventListener("click", () => {
+        const activeObjects = canvas.getActiveObjects();
+        if (!activeObjects || activeObjects.length === 0) return;
+        activeObjects.forEach((obj) => canvas.remove(obj));
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+      });
+
+      // 调试：确认 path 在 mouseup 后真的被加到 canvas 中
+      /*
+      canvas.on("path:created", (e) => {
+        console.log(prefix, "path created, total objects:", canvas.getObjects().length);
+      });
+      */
+
+      return canvas;
+    }
+
+    window.addEventListener("DOMContentLoaded", function () {
+      const leftCanvas = initBoard("left", "left-canvas");
+      const rightCanvas = initBoard("right", "right-canvas");
+  // ========= 新增：右侧画板选中高亮（选中变红，取消恢复原色） =========
+      function enableSelectionHighlight(canvas) {
+        // 统一处理 selection:created 和 selection:updated
+        function handleSelection(e) {
+          const selected = e.selected || [];
+          const deselected = e.deselected || [];
+
+          // 被选中的对象：把原来的颜色存起来，然后改成红色
+          selected.forEach((obj) => {
+            if (!obj) return;
+            // 只处理有 stroke 的对象（Path）
+            if ("stroke" in obj) {
+              // 如果还没保存过原始颜色，就保存一下
+              if (obj._origStrokeColor == null) {
+                obj._origStrokeColor = obj.stroke || "#000000";
+              }
+              obj.set("stroke", "red");
+            }
+          });
+
+          // 这一轮被取消选中的对象：恢复原来的颜色
+          deselected.forEach((obj) => {
+            if (!obj) return;
+            if ("stroke" in obj && obj._origStrokeColor != null) {
+              obj.set("stroke", obj._origStrokeColor);
+            }
+          });
+
+          canvas.requestRenderAll();
+        }
+
+        // 当没有任何选中对象时，把所有之前高亮过的对象颜色恢复一下
+        function handleSelectionCleared(e) {
+          const objects = canvas.getObjects();
+          objects.forEach((obj) => {
+            if ("stroke" in obj && obj._origStrokeColor != null) {
+              obj.set("stroke", obj._origStrokeColor);
+            }
+          });
+          canvas.requestRenderAll();
+        }
+
+        canvas.on("selection:created", handleSelection);
+        canvas.on("selection:updated", handleSelection);
+        canvas.on("selection:cleared", handleSelectionCleared);
+      }
+
+      // 只在右侧画板启用高亮效果
+      enableSelectionHighlight(rightCanvas);
+    
+      // ========= 把 stroke 文本解析成多个 Path，并整体缩放到画布里 =========
+      // 把 stroke 文本解析成多个 Path，并整体缩放到画布里
+      function strokeTextToFabricPaths(text, canvas, extraScale = 1) {
+        const lines = text.trim().split(/\r?\n/);
+
+        const segments = [];
+        let current = [];
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) {
+            if (current.length > 0) {
+              segments.push(current);
+              current = [];
+            }
+            continue;
+          }
+
+          const parts = trimmed.split(/[,\s]+/).filter(Boolean);
+          if (parts.length < 2) continue;
+
+          const x = parseFloat(parts[0]);
+          const y = parseFloat(parts[1]);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+
+          current.push([x, y]);
+
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+        if (current.length > 0) segments.push(current);
+
+        if (segments.length === 0 || !isFinite(minX)) return [];
+
+        const rawWidth = maxX - minX || 1;
+        const rawHeight = maxY - minY || 1;
+
+        const padding = 30;
+        const baseScale = Math.min(
+          (canvas.width - padding * 2) / rawWidth,
+          (canvas.height - padding * 2) / rawHeight
+        );
+
+        const safeExtra = extraScale > 0 && isFinite(extraScale) ? extraScale : 1;
+        const finalScale =
+          baseScale > 0 && isFinite(baseScale) ? baseScale * safeExtra : safeExtra;
+
+        const scaledWidth = rawWidth * finalScale;
+        const scaledHeight = rawHeight * finalScale;
+        const offsetX = (canvas.width - scaledWidth) / 2;
+        const offsetY = (canvas.height - scaledHeight) / 2;
+
+        const paths = segments
+          .map((seg) => {
+            if (seg.length === 0) return null;
+
+            const commands = seg.map(([x, y], idx) => {
+              const sx = (x - minX) * finalScale + offsetX;
+              const sy = (y - minY) * finalScale + offsetY;
+              return `${idx === 0 ? "M" : "L"} ${sx} ${sy}`;
+            });
+
+            const pathData = commands.join(" ");
+
+            const path = new fabric.Path(pathData, {
+              stroke: "#000000",
+              fill: "",
+              strokeWidth: 2,
+              selectable: true,
+              evented: true,
+            });
+
+            path.setCoords();
+            return path;
+          })
+          .filter(Boolean);
+
+        return paths;
+      }
+
+      // ========= [新增] 从 txt 文件加载 stroke 到右画布 =========
+      // ========= [改] 从 txt 文件加载 stroke 到右画布（追加，不清空） =========
+      async function loadStrokeFileToRightCanvas(url) {
+        try {
+          const res = await fetch(url);
+          const text = await res.text();
+
+          // 不清空画布，保留原有内容
+
+          // 默认 1，不额外缩放
+          let extraScale = 1;
+
+          // 如果是飞机这张，就额外再缩小一点（例如 0.6，自己可以调）
+          if (url.includes("airplane_3_s12_92_binary_strokes")) {
+            extraScale = 0.3;  // 想更小就改成 0.5 / 0.4 等
+          }
+
+          const paths = strokeTextToFabricPaths(text, rightCanvas, extraScale);
+          if (paths && paths.length > 0) {
+            paths.forEach((p) => rightCanvas.add(p));
+            rightCanvas.requestRenderAll();
+          } else {
+            console.warn("解析 stroke 文件失败：", url);
+          }
+        } catch (err) {
+          console.error("加载 stroke 文件出错：", url, err);
+        }
+      }
+
+      // ========= [新增] 三个笔画文件，按顺序：长颈鹿 → 鸟 → 飞机 =========
+// ========= [新增] 三个笔画文件，按顺序：长颈鹿 → 鸟 → 飞机 =========
+      const strokeFiles = [
+        "000000076087_giraffe_9_s20_11_generated_strokes.txt", // 第一次点击：长颈鹿
+        "000000162682_bird_5_s8_50_generated_strokes.txt",     // 第二次点击：鸟
+        "000000110310_airplane_3_s12_92_binary_strokes.txt",   // 第三次点击：飞机
+      ];
+
+
+      let strokeIndex = 0;
+
+      
+  // ========= [修改] Completion 按钮：依次加载 长颈鹿 → 鸟 → 飞机 =========
+      const completionBtn = document.getElementById("right-completion-btn");
+      completionBtn.addEventListener("click", async function () {
+        const currentFile = strokeFiles[strokeIndex];
+
+        // 调用刚刚写的加载函数
+        await loadStrokeFileToRightCanvas(currentFile);
+
+        // 指向下一个文件
+        strokeIndex = (strokeIndex + 1) % strokeFiles.length;
+      });
+
+
+      // ===== Voice input: 左侧语音输入 =====
+      const voiceBtn = document.getElementById("left-voice-btn");
+      const voiceText = document.getElementById("left-voice-text");
+      const voiceStatus = document.getElementById("left-voice-status");
+
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        voiceStatus.textContent = "Not supported in this browser";
+        voiceBtn.disabled = true;
+        voiceBtn.style.opacity = 0.5;
+      } else {
+        const recognition = new SpeechRecognition();
+        recognition.lang = "en-US"; // 可改为 "zh-CN"
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        let listening = false;
+        let finalText = voiceText.value || "";
+
+        recognition.onstart = () => {
+          voiceStatus.textContent = "Listening...";
+          voiceStatus.classList.add("active");
+          voiceBtn.classList.add("listening");
+          voiceBtn.querySelector("span:last-child").textContent = "Stop Voice";
+        };
+
+        recognition.onend = () => {
+          voiceStatus.textContent = "Idle";
+          voiceStatus.classList.remove("active");
+          voiceBtn.classList.remove("listening");
+          voiceBtn.querySelector("span:last-child").textContent = "Start Voice";
+          listening = false;
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error:", event);
+          voiceStatus.textContent = "Error";
+          listening = false;
+          voiceBtn.classList.remove("listening");
+          voiceBtn.querySelector("span:last-child").textContent = "Start Voice";
+        };
+
+        recognition.onresult = (event) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalText += transcript;
+            } else {
+              interim += transcript;
+            }
+          }
+          voiceText.value = finalText + interim;
+        };
+
+        voiceBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (!listening) {
+            finalText = voiceText.value || "";
+            listening = true;
+            try {
+              recognition.start();
+            } catch (err) {
+              console.warn("Recognition start error:", err);
+            }
+          } else {
+            listening = false;
+            try {
+              recognition.stop();
+            } catch (err) {
+              console.warn("Recognition stop error:", err);
+            }
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

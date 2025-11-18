@@ -1,0 +1,84 @@
+/* DrawingBoard.css */
+.drawing-board-container {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px;
+  background: linear-gradient(to right, #f0f8ff, #e0f7fa);
+}
+
+.canvas-container {
+  position: relative;
+  border: 2px dashed #ffcc00;
+  border-radius: 15px;
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  margin: 10px;
+}
+
+.left-canvas, .right-canvas {
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* 卡通风格的按钮 */
+button {
+  background-color: #ff6347;
+  border: none;
+  border-radius: 50%;
+  padding: 10px 20px;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #ff4500;
+}
+
+/* 动画效果 */
+@keyframes bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+canvas {
+  animation: bounce 0.5s ease-in-out infinite;
+}
+
+.drawing-board-container {
+  background: linear-gradient(45deg, #ffcc99, #cc99ff);
+}
+
+canvas {
+  cursor: crosshair;
+  border: 2px solid #ff6347;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+canvas:active {
+  background-color: #ffebcd;
+  transform: scale(1.05);
+}
+
+/* 动画效果 */
+@keyframes drawLine {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.left-canvas, .right-canvas {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.right-canvas {
+  border: 3px solid #ff4500;
+}
