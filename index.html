@@ -1073,6 +1073,10 @@
           // 如果是飞机这张，就额外再缩小一点（例如 0.6，自己可以调）
           if (url.includes("airplane_3_s12_92_binary_strokes")) {
             extraScale = 0.3;  // 想更小就改成 0.5 / 0.4 等
+            } else if (url.includes("000000286770_sheep_0_s17_40_generated_strokes")) {       
+              extraScale = 0.5;
+            } else if (url.includes("000000532285_bicycle_0_s17_85_compare_strokes")) {
+              extraScale = 0.5;
           }
 
           const paths = strokeTextToFabricPaths(text, rightCanvas, extraScale);
